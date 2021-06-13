@@ -1982,10 +1982,7 @@ public class TelephonyConnectionService extends ConnectionService {
                                      @Nullable String emergencyNumberAddress) {
         Phone chosenPhone = null;
         if (isEmergency) {
-            int phoneId = PhoneUtils.getPhoneIdForECall();
-            if (phoneId != -1) {
-                return PhoneFactory.getPhone(phoneId);
-            }
+            return PhoneFactory.getPhone(PhoneUtils.getPhoneIdForECall());
         }
         int subId = mPhoneUtilsProxy.getSubIdForPhoneAccountHandle(accountHandle);
         if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {

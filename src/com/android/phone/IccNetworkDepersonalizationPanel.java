@@ -98,14 +98,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         SUCCESS
     }
 
-    private  IExtTelephony getIExtTelephony() {
-        try {
-            IExtTelephony ex = IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
-            return ex;
-        } catch (NoClassDefFoundError ex) {
-            return null;
-        }
-    }
+    private IExtTelephony mExtTelephony = IExtTelephony.Stub.
+            asInterface(ServiceManager.getService("qti.radio.extphone"));
 
     /**
      * Shows the network depersonalization dialog, but only if it is not already visible.
@@ -309,22 +303,24 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
                 return;
             }
 
-            IExtTelephony mExtTelephony = getIExtTelephony();
-            if (mExtTelephony != null) {
-                int persoState = mPersoSubState.getState();
-                log("Requesting De-Personalization for subtype " + mPersoSubtype
-                        + " subtype val " + persoState);
-                try {
+            int persoState = mPersoSubState.getState();
+            log("Requesting De-Personalization for subtype " + mPersoSubtype
+                    + " subtype val " + persoState);
+
+            try {
+                // If 1.5 or above HAL Version, then functionality uses IRadio.hal
+                // else follow legacy procedure
+                if(mPhone.getHalVersion().greaterOrEqual(RIL.RADIO_HAL_VERSION_1_5)) {
+                    mPhone.getIccCard().supplySimDepersonalization(mPersoSubState,pin,
+                           Message.obtain(mHandler, EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT));
+                } else {
                     mExtTelephony.supplyIccDepersonalization(pin, Integer.toString(persoState),
-                            mCallback, mPhone.getPhoneId());
-                } catch (RemoteException ex) {
-                    log("RemoteException @supplyIccDepersonalization" + ex);
-                } catch (NullPointerException ex) {
-                    log("NullPointerException @supplyIccDepersonalization" + ex);
+                             mCallback, mPhone.getPhoneId());
                 }
-            } else {
-                mPhone.getIccCard().supplyNetworkDepersonalization(pin,
-                        Message.obtain(mHandler, EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT));
+            } catch (RemoteException ex) {
+                log("RemoteException @supplyIccDepersonalization" + ex);
+            } catch (NullPointerException ex) {
+                log("NullPointerException @supplyIccDepersonalization" + ex);
             }
             displayStatus(statusType.IN_PROGRESS.name());
         }
